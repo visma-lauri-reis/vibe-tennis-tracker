@@ -16,7 +16,7 @@ import StatsScreen from './src/screens/StatsScreen';
 // Define navigation types
 export type RootStackParamList = {
   Login: { setIsLoggedIn: (value: boolean) => void };
-  MainTabs: undefined;
+  MainTabs: { screen: keyof MainTabParamList } | undefined;
   Game: {
     player1Name: string;
     player2Name: string;

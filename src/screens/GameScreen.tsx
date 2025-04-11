@@ -5,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
@@ -20,8 +21,11 @@ const GameScreen: React.FC<GameScreenProps> = ({ route, navigation }) => {
   const [sets1, setSets1] = useState(0);
   const [sets2, setSets2] = useState(0);
   const [gameHistory, setGameHistory] = useState<string[]>([]);
+  const [isMatchComplete, setIsMatchComplete] = useState(false);
 
   const handlePoint = (player: 1 | 2) => {
+    if (isMatchComplete) return;
+
     if (player === 1) {
       setScore1(prev => {
         const newScore = prev + 1;
@@ -69,13 +73,46 @@ const GameScreen: React.FC<GameScreenProps> = ({ route, navigation }) => {
 
   const handleSet = (winner: 1 | 2) => {
     if (winner === 1) {
-      setSets1(prev => prev + 1);
+      setSets1(prev => {
+        const newSets = prev + 1;
+        if (newSets >= 2) {
+          handleMatchComplete(1);
+          return newSets;
+        }
+        return newSets;
+      });
     } else {
-      setSets2(prev => prev + 1);
+      setSets2(prev => {
+        const newSets = prev + 1;
+        if (newSets >= 2) {
+          handleMatchComplete(2);
+          return newSets;
+        }
+        return newSets;
+      });
     }
     setGames1(0);
     setGames2(0);
     setGameHistory(prev => [...prev, `Set ${winner === 1 ? sets1 + 1 : sets2 + 1} won by ${winner === 1 ? player1Name : player2Name}`]);
+  };
+
+  const handleMatchComplete = (winner: 1 | 2) => {
+    setIsMatchComplete(true);
+    const winnerName = winner === 1 ? player1Name : player2Name;
+    Alert.alert(
+      'Match Complete!',
+      `${winnerName} wins the match!`,
+      [
+        {
+          text: 'New Game',
+          onPress: () => navigation.navigate('MainTabs', { screen: 'NewGame' }),
+        },
+        {
+          text: 'View History',
+          onPress: () => navigation.navigate('MainTabs', { screen: 'History' }),
+        },
+      ]
+    );
   };
 
   const getScoreDisplay = (score: number) => {
@@ -111,24 +148,29 @@ const GameScreen: React.FC<GameScreenProps> = ({ route, navigation }) => {
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={styles.button}
+          style={[styles.button, isMatchComplete && styles.buttonDisabled]}
           onPress={() => handlePoint(1)}
+          disabled={isMatchComplete}
         >
           <Text style={styles.buttonText}>Point for {player1Name}</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.button}
+          style={[styles.button, isMatchComplete && styles.buttonDisabled]}
           onPress={() => handlePoint(2)}
+          disabled={isMatchComplete}
         >
           <Text style={styles.buttonText}>Point for {player2Name}</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.historyContainer}>
-        {gameHistory.map((entry, index) => (
-          <Text key={index} style={styles.historyText}>{entry}</Text>
-        ))}
-      </ScrollView>
+      {gameHistory.length > 0 && (
+        <View style={styles.historyContainer}>
+          <Text style={styles.historyTitle}>Set History</Text>
+          {gameHistory.map((entry, index) => (
+            <Text key={index} style={styles.historyEntry}>{entry}</Text>
+          ))}
+        </View>
+      )}
     </View>
   );
 };
@@ -186,17 +228,29 @@ const styles = StyleSheet.create({
     minWidth: 150,
     alignItems: 'center',
   },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
+  },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
   historyContainer: {
-    flex: 1,
-    padding: 20,
+    marginTop: 40,
+    padding: 15,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
   },
-  historyText: {
+  historyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+  },
+  historyEntry: {
     fontSize: 16,
+    color: '#666',
     marginBottom: 5,
   },
 });
