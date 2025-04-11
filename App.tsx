@@ -1,19 +1,20 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, View } from 'react-native';
 import LoginScreen from './src/screens/LoginScreen';
 import NewGameScreen from './src/screens/NewGameScreen';
 import GameScreen from './src/screens/GameScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import StatsScreen from './src/screens/StatsScreen';
+import { theme } from './src/utils/theme';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 
 // Define navigation types
 export type RootStackParamList = {
-  Login: {
-    setIsLoggedIn: React.Dispatch<React.SetStateAction<boolean>>;
-  };
+  Login: undefined;
   MainTabs: undefined;
   Game: {
     player1Name: string;
@@ -58,8 +59,16 @@ function MainTabs() {
   );
 }
 
-export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+function NavigationContent() {
+  const { isLoggedIn, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
@@ -68,7 +77,7 @@ export default function App() {
           <Stack.Screen 
             name="Login" 
             component={LoginScreen}
-            initialParams={{ setIsLoggedIn }}
+            options={{ headerShown: false }}
           />
         ) : (
           <>
@@ -82,5 +91,13 @@ export default function App() {
         )}
       </Stack.Navigator>
     </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <NavigationContent />
+    </AuthProvider>
   );
 }

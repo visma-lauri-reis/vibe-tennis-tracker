@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { getGameHistory, GameHistoryItem } from '../utils/storage';
 import { Card } from '../components/Card';
 import { theme } from '../utils/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
 
 interface PlayerStats {
   name: string;
@@ -14,43 +15,43 @@ interface PlayerStats {
 }
 
 export default function StatsScreen() {
+  const [gameHistory, setGameHistory] = useState<GameHistoryItem[]>([]);
   const [playerStats, setPlayerStats] = useState<PlayerStats[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { logout } = useAuth();
 
   useEffect(() => {
-    loadStats();
+    loadGameHistory();
   }, []);
 
-  const loadStats = async () => {
-    const history = await getGameHistory();
+  const loadGameHistory = async () => {
+    setIsLoading(true);
+    try {
+      const history = await getGameHistory();
+      setGameHistory(history);
+      calculatePlayerStats(history);
+    } catch (error) {
+      console.error('Error loading game history:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const calculatePlayerStats = (history: GameHistoryItem[]) => {
     const statsMap = new Map<string, PlayerStats>();
 
     history.forEach(game => {
       // Process player 1
-      updatePlayerStats(
-        statsMap, 
-        game.player1Name, 
-        game.winner === game.player1Name ? 1 : 0,
-        game.winner === game.player1Name
-      );
+      updatePlayerStats(statsMap, game.player1Name, game.winner === game.player1Name);
       
       // Process player 2
-      updatePlayerStats(
-        statsMap, 
-        game.player2Name, 
-        game.winner === game.player2Name ? 1 : 0,
-        game.winner === game.player2Name
-      );
+      updatePlayerStats(statsMap, game.player2Name, game.winner === game.player2Name);
     });
 
     setPlayerStats(Array.from(statsMap.values()));
   };
 
-  const updatePlayerStats = (
-    statsMap: Map<string, PlayerStats>,
-    playerName: string,
-    setsWon: number,
-    isWinner: boolean
-  ) => {
+  const updatePlayerStats = (statsMap: Map<string, PlayerStats>, playerName: string, isWinner: boolean) => {
     const existingStats = statsMap.get(playerName) || {
       name: playerName,
       matchesPlayed: 0,
@@ -63,65 +64,77 @@ export default function StatsScreen() {
     if (isWinner) {
       existingStats.matchesWon += 1;
     }
-    existingStats.setsWon += setsWon;
-    existingStats.winRate = `${((existingStats.matchesWon / existingStats.matchesPlayed) * 100).toFixed(1)}%`;
+
+    // Calculate win rate
+    const winRate = (existingStats.matchesWon / existingStats.matchesPlayed) * 100;
+    existingStats.winRate = `${winRate.toFixed(1)}%`;
 
     statsMap.set(playerName, existingStats);
   };
 
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              // The AuthContext will handle updating the isLoggedIn state
+              // and the App.tsx will automatically show the login screen
+            } catch (error) {
+              console.error('Error logging out:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Player Statistics</Text>
-      
-      {playerStats.length > 0 ? (
-        playerStats.map((stats, index) => (
-          <Card key={index} variant="elevated" style={styles.statsCard}>
-            <View style={styles.playerHeader}>
-              <Ionicons name="person-circle-outline" size={24} color={theme.colors.primary} />
-              <Text style={styles.playerName}>{stats.name}</Text>
-            </View>
-            
-            <View style={styles.statsGrid}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stats.matchesPlayed}</Text>
-                <Text style={styles.statLabel}>Matches</Text>
-              </View>
-              
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stats.matchesWon}</Text>
-                <Text style={styles.statLabel}>Wins</Text>
-              </View>
-              
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stats.setsWon}</Text>
-                <Text style={styles.statLabel}>Sets</Text>
-              </View>
-              
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stats.winRate}</Text>
-                <Text style={styles.statLabel}>Win Rate</Text>
+      <Card variant="elevated" style={styles.card}>
+        <View style={styles.headerContainer}>
+          <Text style={styles.title}>Player Statistics</Text>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <Ionicons name="log-out-outline" size={24} color={theme.colors.error} />
+          </TouchableOpacity>
+        </View>
+        
+        {isLoading ? (
+          <Text style={styles.loadingText}>Loading statistics...</Text>
+        ) : playerStats.length > 0 ? (
+          playerStats.map((player, index) => (
+            <View key={index} style={styles.playerStatsContainer}>
+              <Text style={styles.playerName}>{player.name}</Text>
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{player.matchesPlayed}</Text>
+                  <Text style={styles.statLabel}>Matches</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{player.matchesWon}</Text>
+                  <Text style={styles.statLabel}>Wins</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statValue}>{player.winRate}</Text>
+                  <Text style={styles.statLabel}>Win Rate</Text>
+                </View>
               </View>
             </View>
-            
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View 
-                  style={[
-                    styles.progressFill, 
-                    { width: `${parseFloat(stats.winRate)}%` }
-                  ]} 
-                />
-              </View>
-            </View>
-          </Card>
-        ))
-      ) : (
-        <Card style={styles.emptyCard}>
-          <Ionicons name="stats-chart-outline" size={64} color={theme.colors.textSecondary} />
-          <Text style={styles.emptyText}>No games played yet</Text>
-          <Text style={styles.emptySubtext}>Play some games to see your statistics</Text>
-        </Card>
-      )}
+          ))
+        ) : (
+          <Text style={styles.noDataText}>No game history available</Text>
+        )}
+      </Card>
     </ScrollView>
   );
 }
@@ -130,78 +143,63 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    padding: theme.spacing.md,
+    padding: 16,
+  },
+  card: {
+    padding: 16,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   title: {
-    fontSize: theme.typography.h2.fontSize,
+    fontSize: 20,
     fontWeight: 'bold',
     color: theme.colors.text,
-    marginBottom: theme.spacing.lg,
   },
-  statsCard: {
-    marginBottom: theme.spacing.md,
+  logoutButton: {
+    padding: 8,
   },
-  playerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.spacing.md,
+  playerStatsContainer: {
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: theme.colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   playerName: {
-    fontSize: theme.typography.h3.fontSize,
+    fontSize: 18,
     fontWeight: 'bold',
     color: theme.colors.text,
-    marginLeft: theme.spacing.sm,
+    marginBottom: 8,
   },
-  statsGrid: {
+  statsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing.md,
   },
   statItem: {
-    width: '48%',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
   },
   statValue: {
-    fontSize: theme.typography.h2.fontSize,
+    fontSize: 16,
     fontWeight: 'bold',
     color: theme.colors.primary,
-    marginBottom: theme.spacing.xs,
   },
   statLabel: {
-    fontSize: theme.typography.body.fontSize,
+    fontSize: 12,
     color: theme.colors.textSecondary,
   },
-  progressContainer: {
-    marginTop: theme.spacing.sm,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: theme.colors.border,
-    borderRadius: theme.borderRadius.sm,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.sm,
-  },
-  emptyCard: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: theme.spacing.xl,
-  },
-  emptyText: {
-    fontSize: theme.typography.h3.fontSize,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    marginTop: theme.spacing.lg,
-    marginBottom: theme.spacing.sm,
-  },
-  emptySubtext: {
-    fontSize: theme.typography.body.fontSize,
-    color: theme.colors.textSecondary,
+  loadingText: {
     textAlign: 'center',
+    color: theme.colors.textSecondary,
+    marginVertical: 20,
+  },
+  noDataText: {
+    textAlign: 'center',
+    color: theme.colors.textSecondary,
+    marginVertical: 20,
   },
 }); 
