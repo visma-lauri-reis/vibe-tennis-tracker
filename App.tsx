@@ -15,7 +15,9 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 // Define navigation types
 export type RootStackParamList = {
   Login: undefined;
-  MainTabs: undefined;
+  MainTabs: {
+    screen: keyof MainTabParamList;
+  };
   Game: {
     player1Name: string;
     player2Name: string;

@@ -10,7 +10,7 @@ import { saveGameToHistory, getGameHistory, GameHistoryItem } from '../utils/sto
 import { Ionicons } from '@expo/vector-icons';
 
 type GameScreenRouteProp = RouteProp<RootStackParamList, 'Game'>;
-type GameScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Game'>;
+type GameScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function GameScreen() {
   const route = useRoute<GameScreenRouteProp>();
@@ -174,6 +174,12 @@ export default function GameScreen() {
         'Game Over!',
         `${winner === 1 ? player1Name : player2Name} wins the match!`,
         [
+          {
+            text: 'View History',
+            onPress: () => {
+              navigation.navigate('MainTabs', { screen: 'History' });
+            },
+          },
           {
             text: 'New Game',
             onPress: () => navigation.navigate('MainTabs'),

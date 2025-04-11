@@ -73,6 +73,10 @@ function handleGameWin(scoringPlayer: number, gameState: GameState): void {
     handleSetWin(1, gameState);
   } else if (gameState.games2 >= 6 && gameState.games2 - gameState.games1 >= 2) {
     handleSetWin(2, gameState);
+  } else if (gameState.games1 === 6 && gameState.games2 <= 4) {
+    handleSetWin(1, gameState);
+  } else if (gameState.games2 === 6 && gameState.games1 <= 4) {
+    handleSetWin(2, gameState);
   }
 }
 
@@ -89,7 +93,13 @@ function handleSetWin(winningPlayer: number, gameState: GameState): void {
   }
 
   // Check for match win
-  if (gameState.sets1 === 2 || gameState.sets2 === 2) {
+  if (gameState.sets1 >= 6) {  // Player 1 wins with 6 sets
+    gameState.isGameOver = true;
+  } else if (gameState.sets2 >= 6) {  // Player 2 wins with 6 sets
+    gameState.isGameOver = true;
+  } else if (gameState.sets1 >= 2 && gameState.sets1 - gameState.sets2 >= 2) {  // Player 1 wins by 2 sets
+    gameState.isGameOver = true;
+  } else if (gameState.sets2 >= 2 && gameState.sets2 - gameState.sets1 >= 2) {  // Player 2 wins by 2 sets
     gameState.isGameOver = true;
   }
 } 

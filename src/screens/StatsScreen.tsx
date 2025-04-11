@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { getGameHistory, GameHistoryItem } from '../utils/storage';
 import { Card } from '../components/Card';
 import { theme } from '../utils/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../context/AuthContext';
 
 interface PlayerStats {
   name: string;
@@ -18,7 +16,6 @@ export default function StatsScreen() {
   const [gameHistory, setGameHistory] = useState<GameHistoryItem[]>([]);
   const [playerStats, setPlayerStats] = useState<PlayerStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { logout } = useAuth();
 
   useEffect(() => {
     loadGameHistory();
@@ -72,41 +69,11 @@ export default function StatsScreen() {
     statsMap.set(playerName, existingStats);
   };
 
-  const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel'
-        },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await logout();
-              // The AuthContext will handle updating the isLoggedIn state
-              // and the App.tsx will automatically show the login screen
-            } catch (error) {
-              console.error('Error logging out:', error);
-              Alert.alert('Error', 'Failed to logout. Please try again.');
-            }
-          }
-        }
-      ]
-    );
-  };
-
   return (
     <ScrollView style={styles.container}>
       <Card variant="elevated" style={styles.card}>
         <View style={styles.headerContainer}>
           <Text style={styles.title}>Player Statistics</Text>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Ionicons name="log-out-outline" size={24} color={theme.colors.error} />
-          </TouchableOpacity>
         </View>
         
         {isLoading ? (
@@ -159,9 +126,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: theme.colors.text,
   },
-  logoutButton: {
-    padding: 8,
-  },
   playerStatsContainer: {
     marginBottom: 16,
     padding: 12,
@@ -201,5 +165,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: theme.colors.textSecondary,
     marginVertical: 20,
-  },
+  }
 }); 

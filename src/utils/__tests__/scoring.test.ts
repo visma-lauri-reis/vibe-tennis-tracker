@@ -146,6 +146,32 @@ describe('Tennis Scoring Logic', () => {
       expect(gameState.games1).toBe(0);
       expect(gameState.games2).toBe(0);
     });
+
+    test('should not win set at 6-5', () => {
+      // Player 1 wins 5 games
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 4; j++) {
+          handlePoint(1, gameState);
+        }
+      }
+
+      // Player 2 wins 5 games
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 4; j++) {
+          handlePoint(2, gameState);
+        }
+      }
+
+      // Player 1 wins one more game
+      for (let j = 0; j < 4; j++) {
+        handlePoint(1, gameState);
+      }
+
+      expect(gameState.sets1).toBe(0);
+      expect(gameState.sets2).toBe(0);
+      expect(gameState.games1).toBe(6);
+      expect(gameState.games2).toBe(5);
+    });
   });
 
   describe('Match Winning', () => {
@@ -167,6 +193,82 @@ describe('Tennis Scoring Logic', () => {
       expect(gameState.isGameOver).toBe(true);
       expect(gameState.sets1).toBe(2);
       expect(gameState.sets2).toBe(0);
+    });
+
+    test('should not win match at 2-1', () => {
+      // Player 1 wins first set
+      for (let i = 0; i < 6; i++) {
+        for (let j = 0; j < 4; j++) {
+          handlePoint(1, gameState);
+        }
+      }
+
+      // Player 2 wins second set
+      for (let i = 0; i < 6; i++) {
+        for (let j = 0; j < 4; j++) {
+          handlePoint(2, gameState);
+        }
+      }
+
+      // Player 1 wins third set
+      for (let i = 0; i < 6; i++) {
+        for (let j = 0; j < 4; j++) {
+          handlePoint(1, gameState);
+        }
+      }
+
+      expect(gameState.isGameOver).toBe(false);
+      expect(gameState.sets1).toBe(2);
+      expect(gameState.sets2).toBe(1);
+    });
+
+    test('should win match at 3-1', () => {
+      // Player 1 wins first set
+      for (let i = 0; i < 6; i++) {
+        for (let j = 0; j < 4; j++) {
+          handlePoint(1, gameState);
+        }
+      }
+
+      // Player 2 wins second set
+      for (let i = 0; i < 6; i++) {
+        for (let j = 0; j < 4; j++) {
+          handlePoint(2, gameState);
+        }
+      }
+
+      // Player 1 wins third set
+      for (let i = 0; i < 6; i++) {
+        for (let j = 0; j < 4; j++) {
+          handlePoint(1, gameState);
+        }
+      }
+
+      // Player 1 wins fourth set
+      for (let i = 0; i < 6; i++) {
+        for (let j = 0; j < 4; j++) {
+          handlePoint(1, gameState);
+        }
+      }
+
+      expect(gameState.isGameOver).toBe(true);
+      expect(gameState.sets1).toBe(3);
+      expect(gameState.sets2).toBe(1);
+    });
+
+    test('should not win match at 5-4', () => {
+      // Set up 5-4 score
+      gameState.sets1 = 5;
+      gameState.sets2 = 4;
+
+      // Player 2 wins a game to make it 5-4
+      for (let j = 0; j < 4; j++) {
+        handlePoint(2, gameState);
+      }
+
+      expect(gameState.isGameOver).toBe(false);
+      expect(gameState.sets1).toBe(5);
+      expect(gameState.sets2).toBe(4);
     });
   });
 }); 
