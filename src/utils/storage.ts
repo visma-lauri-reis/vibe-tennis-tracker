@@ -3,13 +3,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export interface GameHistoryItem {
   id: string;
   date: string;
-  player1: string;
-  player2: string;
-  sets: {
-    player1: number;
-    player2: number;
-  };
+  player1Name: string;
+  player2Name: string;
   winner: string;
+  score: string;
   setNumber: number;
 }
 

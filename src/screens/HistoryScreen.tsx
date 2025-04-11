@@ -50,20 +50,17 @@ export default function HistoryScreen() {
     <Card style={styles.gameCard}>
       <View style={styles.gameHeader}>
         <Text style={styles.gameDate}>{formatDate(item.date)}</Text>
-        <View style={styles.setBadge}>
-          <Text style={styles.setBadgeText}>Set {item.setNumber}</Text>
-        </View>
       </View>
       
       <View style={styles.playerRow}>
         <View style={styles.playerInfo}>
-          <Text style={styles.playerName}>{item.player1}</Text>
-          <Text style={styles.scoreText}>{item.sets.player1}</Text>
+          <Text style={styles.playerName}>{item.player1Name}</Text>
+          <Text style={styles.scoreText}>{item.score.split('-')[0]}</Text>
         </View>
         <Text style={styles.vsText}>vs</Text>
         <View style={styles.playerInfo}>
-          <Text style={styles.playerName}>{item.player2}</Text>
-          <Text style={styles.scoreText}>{item.sets.player2}</Text>
+          <Text style={styles.playerName}>{item.player2Name}</Text>
+          <Text style={styles.scoreText}>{item.score.split('-')[1]}</Text>
         </View>
       </View>
       

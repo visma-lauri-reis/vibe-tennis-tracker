@@ -8,7 +8,7 @@ import { Card } from '../components/Card';
 import { theme } from '../utils/theme';
 import { RootStackParamList } from '../../App';
 
-type NewGameScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'NewGame'>;
+type NewGameScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainTabs'>;
 
 export default function NewGameScreen() {
   const navigation = useNavigation<NewGameScreenNavigationProp>();

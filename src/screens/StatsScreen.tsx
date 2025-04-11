@@ -26,9 +26,20 @@ export default function StatsScreen() {
 
     history.forEach(game => {
       // Process player 1
-      updatePlayerStats(statsMap, game.player1, game.sets.player1, game.sets.player1 > game.sets.player2);
+      updatePlayerStats(
+        statsMap, 
+        game.player1Name, 
+        game.winner === game.player1Name ? 1 : 0,
+        game.winner === game.player1Name
+      );
+      
       // Process player 2
-      updatePlayerStats(statsMap, game.player2, game.sets.player2, game.sets.player2 > game.sets.player1);
+      updatePlayerStats(
+        statsMap, 
+        game.player2Name, 
+        game.winner === game.player2Name ? 1 : 0,
+        game.winner === game.player2Name
+      );
     });
 
     setPlayerStats(Array.from(statsMap.values()));

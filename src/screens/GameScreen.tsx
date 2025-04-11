@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Alert, ScrollView } from 'react-native';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -9,10 +10,11 @@ import { saveGameToHistory, getGameHistory, GameHistoryItem } from '../utils/sto
 import { Ionicons } from '@expo/vector-icons';
 
 type GameScreenRouteProp = RouteProp<RootStackParamList, 'Game'>;
+type GameScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Game'>;
 
 export default function GameScreen() {
   const route = useRoute<GameScreenRouteProp>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<GameScreenNavigationProp>();
   const { player1Name, player2Name } = route.params;
 
   // Game state
@@ -69,98 +71,144 @@ export default function GameScreen() {
         setIsAdvantage(true);
         setAdvantagePlayer(player);
       }
-    } else {
-      if (player === 1) {
-        if (points1 === 40 || (points1 === 30 && points2 < 40)) {
-          setGames1(games1 + 1);
-          resetPoints();
-          checkSetWinner();
+      return;
+    }
+
+    // Handle regular scoring
+    if (player === 1) {
+      if (points1 === 30) {
+        if (points2 === 40) {
+          // Other player has 40, this point makes it deuce
+          setPoints1(40);
+          setIsDeuce(true);
         } else {
-          setPoints1(points1 + 15);
-          if (points1 === 30 && points2 === 40) {
-            setIsDeuce(true);
-          }
+          // Normal progression to 40
+          setPoints1(40);
         }
+      } else if (points1 === 40) {
+        // Already at 40, win the game
+        setGames1(games1 + 1);
+        resetPoints();
+        checkSetWinner();
       } else {
-        if (points2 === 40 || (points2 === 30 && points1 < 40)) {
-          setGames2(games2 + 1);
-          resetPoints();
-          checkSetWinner();
+        // Normal progression (0->15->30)
+        const newPoints = points1 + 15;
+        setPoints1(newPoints);
+        if (newPoints === 40 && points2 === 40) {
+          setIsDeuce(true);
+        }
+      }
+    } else {
+      if (points2 === 30) {
+        if (points1 === 40) {
+          // Other player has 40, this point makes it deuce
+          setPoints2(40);
+          setIsDeuce(true);
         } else {
-          setPoints2(points2 + 15);
-          if (points2 === 30 && points1 === 40) {
-            setIsDeuce(true);
-          }
+          // Normal progression to 40
+          setPoints2(40);
+        }
+      } else if (points2 === 40) {
+        // Already at 40, win the game
+        setGames2(games2 + 1);
+        resetPoints();
+        checkSetWinner();
+      } else {
+        // Normal progression (0->15->30)
+        const newPoints = points2 + 15;
+        setPoints2(newPoints);
+        if (newPoints === 40 && points1 === 40) {
+          setIsDeuce(true);
         }
       }
     }
   };
 
-  const checkSetWinner = () => {
-    if (games1 >= 6 && games1 - games2 >= 2) {
+  const checkGameWinner = () => {
+    // Win by reaching 6 points
+    if (games1 >= 5 && games1 >= games2 + 2) {
       setSets1(sets1 + 1);
-      setGames1(0);
-      setGames2(0);
-      checkMatchWinner();
-    } else if (games2 >= 6 && games2 - games1 >= 2) {
+      handleSetWon(1);
+      resetGames();
+      return;
+    }
+    if (games2 >= 5 && games2 >= games1 + 2) {
       setSets2(sets2 + 1);
-      setGames1(0);
-      setGames2(0);
-      checkMatchWinner();
+      handleSetWon(2);
+      resetGames();
+      return;
+    }
+
+    // Win by reaching 6 points
+    if (games1 === 6) {
+      setSets1(sets1 + 1);
+      handleSetWon(1);
+      resetGames();
+      return;
+    }
+    if (games2 === 6) {
+      setSets2(sets2 + 1);
+      handleSetWon(2);
+      resetGames();
+      return;
     }
   };
 
-  const checkMatchWinner = () => {
-    if (sets1 === 2) {
-      endGame(1);
-    } else if (sets2 === 2) {
-      endGame(2);
+  const handleSetWon = (winner: 1 | 2) => {
+    // Check if the match is over after this set
+    if ((winner === 1 && sets1 + 1 === 2) || (winner === 2 && sets2 + 1 === 2)) {
+      // Only save to history when the game is complete
+      const gameHistory: GameHistoryItem = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        player1Name,
+        player2Name,
+        winner: winner === 1 ? player1Name : player2Name,
+        score: `${sets1 + (winner === 1 ? 1 : 0)}-${sets2 + (winner === 2 ? 1 : 0)}`,
+        setNumber: sets1 + sets2 + 1,
+      };
+      saveGameToHistory(gameHistory);
+      
+      setIsGameOver(true);
+      Alert.alert(
+        'Game Over!',
+        `${winner === 1 ? player1Name : player2Name} wins the match!`,
+        [
+          {
+            text: 'New Game',
+            onPress: () => navigation.navigate('MainTabs'),
+          },
+        ]
+      );
     }
   };
 
-  const endGame = async (winner: 1 | 2) => {
-    setIsGameOver(true);
-    const currentSetNumber = sets1 + sets2 + 1;
-    
-    const newGame: GameHistoryItem = {
-      id: Date.now().toString(),
-      date: new Date().toISOString(),
-      player1: player1Name,
-      player2: player2Name,
-      sets: {
-        player1: sets1 + (winner === 1 ? 1 : 0),
-        player2: sets2 + (winner === 2 ? 1 : 0),
-      },
-      winner: winner === 1 ? player1Name : player2Name,
-      setNumber: currentSetNumber,
-    };
+  const resetGames = () => {
+    setGames1(0);
+    setGames2(0);
+  };
 
-    const updatedHistory = [...gameHistory, newGame];
-    await saveGameToHistory(newGame);
-    setGameHistory(updatedHistory);
-
-    Alert.alert(
-      'Game Over',
-      `${winner === 1 ? player1Name : player2Name} wins the match!`,
-      [
-        {
-          text: 'New Game',
-          onPress: () => navigation.navigate('NewGame' as never),
-        },
-        {
-          text: 'View History',
-          onPress: () => navigation.navigate('History' as never),
-        },
-      ]
-    );
+  const checkSetWinner = () => {
+    // Check if a player has won the current set
+    checkGameWinner();
   };
 
   const formatPoints = (points: number) => {
     if (points === 0) return '0';
     if (points === 15) return '15';
     if (points === 30) return '30';
-    if (points === 45) return '40';
+    if (points === 40) return '40';
     return '0';
+  };
+
+  const getPointDisplay = (player: 1 | 2) => {
+    if (isDeuce) {
+      if (isAdvantage) {
+        return advantagePlayer === player ? 'Ad' : '40';
+      }
+      return 'Deuce';
+    }
+    return player === 1 ? formatPoints(points1) : formatPoints(points2);
   };
 
   return (
@@ -186,15 +234,7 @@ export default function GameScreen() {
         <View style={styles.pointsContainer}>
           <View style={styles.pointSection}>
             <Text style={styles.pointLabel}>Points</Text>
-            <Text style={styles.pointValue}>
-              {isDeuce
-                ? isAdvantage
-                  ? advantagePlayer === 1
-                    ? 'Ad'
-                    : '40'
-                  : 'Deuce'
-                : formatPoints(points1)}
-            </Text>
+            <Text style={styles.pointValue}>{getPointDisplay(1)}</Text>
             <Button
               title="Point"
               onPress={() => handlePoint(1)}
@@ -207,15 +247,7 @@ export default function GameScreen() {
 
           <View style={styles.pointSection}>
             <Text style={styles.pointLabel}>Points</Text>
-            <Text style={styles.pointValue}>
-              {isDeuce
-                ? isAdvantage
-                  ? advantagePlayer === 2
-                    ? 'Ad'
-                    : '40'
-                  : 'Deuce'
-                : formatPoints(points2)}
-            </Text>
+            <Text style={styles.pointValue}>{getPointDisplay(2)}</Text>
             <Button
               title="Point"
               onPress={() => handlePoint(2)}
@@ -231,20 +263,26 @@ export default function GameScreen() {
       <Card style={styles.controlsCard}>
         <Text style={styles.controlsTitle}>Game Controls</Text>
         <View style={styles.controlsRow}>
-          <Button
-            title="Reset Points"
-            onPress={resetPoints}
-            variant="outline"
-            icon="refresh-outline"
-            size="small"
-          />
-          <Button
-            title="New Game"
-            onPress={() => navigation.navigate('NewGame' as never)}
-            variant="outline"
-            icon="add-outline"
-            size="small"
-          />
+          <View style={styles.controlButton}>
+            <Button
+              title="Reset Points"
+              onPress={resetPoints}
+              variant="outline"
+              icon="refresh-outline"
+              size="small"
+              fullWidth
+            />
+          </View>
+          <View style={styles.controlButton}>
+            <Button
+              title="New Game"
+              onPress={() => navigation.navigate('MainTabs')}
+              variant="outline"
+              icon="add-outline"
+              size="small"
+              fullWidth
+            />
+          </View>
         </View>
       </Card>
     </ScrollView>
@@ -330,5 +368,9 @@ const styles = StyleSheet.create({
   controlsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+  },
+  controlButton: {
+    flex: 1,
+    marginHorizontal: theme.spacing.xs,
   },
 }); 
