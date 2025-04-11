@@ -100,15 +100,19 @@ const GameScreen: React.FC<GameScreenProps> = ({ route, navigation }) => {
   const handleMatchComplete = async (winner: 1 | 2) => {
     setIsMatchComplete(true);
     const winnerName = winner === 1 ? player1Name : player2Name;
+    
+    // Update the sets count for the winner
+    const finalSets1 = winner === 1 ? sets1 + 1 : sets1;
+    const finalSets2 = winner === 2 ? sets2 + 1 : sets2;
 
     // Save game to history
     await saveGameToHistory({
       player1: player1Name,
       player2: player2Name,
-      score: `${sets1}-${sets2}`,
+      score: `${finalSets1}-${finalSets2}`,
       sets: {
-        player1: sets1,
-        player2: sets2,
+        player1: finalSets1,
+        player2: finalSets2,
       },
     });
 

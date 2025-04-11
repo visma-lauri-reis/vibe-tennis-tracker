@@ -32,7 +32,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const renderItem = ({ item }: { item: GameHistoryItem }) => (
