@@ -53,6 +53,40 @@ npm run android
 yarn android
 ```
 
+### Testing
+
+The project uses Jest and React Native Testing Library for unit and integration testing.
+
+1. Run all tests:
+```bash
+npm test
+```
+
+2. Run tests in watch mode (tests will re-run when files change):
+```bash
+npm test -- --watch
+```
+
+3. Run tests for a specific file:
+```bash
+npm test path/to/test/file.test.ts
+```
+
+Test files are located in `__tests__` directories next to the files they test. For example:
+```
+src/
+├── utils/
+│   ├── scoring.ts
+│   └── __tests__/
+│       └── scoring.test.ts
+```
+
+The test suite includes:
+- Unit tests for scoring logic
+- Game state management tests
+- Point, game, and set winning conditions
+- Deuce and advantage scenarios
+
 ## Usage
 
 1. **Login**: Create an account or sign in to access your profile
