@@ -1,63 +1,114 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { CompositeScreenProps } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import { RootStackParamList, MainTabParamList } from '../../App';
-import { GameHistoryItem, getGameHistory } from '../utils/storage';
+import { View, Text, StyleSheet, FlatList, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { getGameHistory, GameHistoryItem, clearGameHistory } from '../utils/storage';
+import { Card } from '../components/Card';
+import { Button } from '../components/Button';
+import { theme } from '../utils/theme';
 
-type HistoryScreenProps = CompositeScreenProps<
-  BottomTabScreenProps<MainTabParamList, 'History'>,
-  NativeStackScreenProps<RootStackParamList>
->;
-
-export default function HistoryScreen({ navigation }: HistoryScreenProps) {
+export default function HistoryScreen() {
+  const navigation = useNavigation();
   const [history, setHistory] = useState<GameHistoryItem[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
 
   const loadHistory = async () => {
     const gameHistory = await getGameHistory();
     setHistory(gameHistory);
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadHistory();
-    setRefreshing(false);
+  const handleClearHistory = () => {
+    Alert.alert(
+      'Clear History',
+      'Are you sure you want to clear all game history? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            await clearGameHistory();
+            setHistory([]);
+          },
+        },
+      ]
+    );
   };
-
-  useEffect(() => {
-    loadHistory();
-  }, []);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const renderItem = ({ item }: { item: GameHistoryItem }) => (
-    <View style={styles.historyItem}>
-      <Text style={styles.date}>{formatDate(item.date)}</Text>
-      <Text style={styles.players}>{item.player1} vs {item.player2}</Text>
-      <Text style={styles.score}>Score: {item.score}</Text>
-    </View>
+  const renderGameItem = ({ item }: { item: GameHistoryItem }) => (
+    <Card style={styles.gameCard}>
+      <View style={styles.gameHeader}>
+        <Text style={styles.gameDate}>{formatDate(item.date)}</Text>
+        <View style={styles.setBadge}>
+          <Text style={styles.setBadgeText}>Set {item.setNumber}</Text>
+        </View>
+      </View>
+      
+      <View style={styles.playerRow}>
+        <View style={styles.playerInfo}>
+          <Text style={styles.playerName}>{item.player1}</Text>
+          <Text style={styles.scoreText}>{item.sets.player1}</Text>
+        </View>
+        <Text style={styles.vsText}>vs</Text>
+        <View style={styles.playerInfo}>
+          <Text style={styles.playerName}>{item.player2}</Text>
+          <Text style={styles.scoreText}>{item.sets.player2}</Text>
+        </View>
+      </View>
+      
+      <View style={styles.winnerContainer}>
+        <Ionicons name="trophy" size={16} color={theme.colors.secondary} />
+        <Text style={styles.winnerText}>Winner: {item.winner}</Text>
+      </View>
+    </Card>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Game History</Text>
-      <FlatList
-        data={history}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        ListEmptyComponent={
+      <View style={styles.header}>
+        <Text style={styles.title}>Game History</Text>
+        {history.length > 0 && (
+          <Button
+            title="Clear History"
+            onPress={handleClearHistory}
+            variant="outline"
+            icon="trash-outline"
+            size="small"
+          />
+        )}
+      </View>
+      
+      {history.length > 0 ? (
+        <FlatList
+          data={history}
+          renderItem={renderGameItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+        />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="calendar-outline" size={64} color={theme.colors.textSecondary} />
           <Text style={styles.emptyText}>No games played yet</Text>
-        }
-      />
+          <Button
+            title="Start a New Game"
+            onPress={() => navigation.navigate('NewGame' as never)}
+            variant="primary"
+            icon="add-circle-outline"
+            iconPosition="right"
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -65,44 +116,98 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 20,
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.md,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
   },
   title: {
-    fontSize: 24,
+    fontSize: theme.typography.h2.fontSize,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    color: theme.colors.text,
   },
-  listContainer: {
-    paddingBottom: 20,
+  listContent: {
+    paddingBottom: theme.spacing.lg,
   },
-  historyItem: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
+  gameCard: {
+    marginBottom: theme.spacing.md,
   },
-  date: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
+  gameHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
   },
-  players: {
-    fontSize: 16,
+  gameDate: {
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.textSecondary,
+  },
+  setBadge: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.sm,
+  },
+  setBadgeText: {
+    color: 'white',
+    fontSize: theme.typography.caption.fontSize,
     fontWeight: 'bold',
-    marginBottom: 5,
   },
-  score: {
-    fontSize: 16,
-    color: '#007AFF',
+  playerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  playerInfo: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  playerName: {
+    fontSize: theme.typography.h3.fontSize,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
+  },
+  scoreText: {
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
+  },
+  vsText: {
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.textSecondary,
+    marginHorizontal: theme.spacing.md,
+  },
+  winnerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: theme.spacing.sm,
+    paddingTop: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  winnerText: {
+    fontSize: theme.typography.body.fontSize,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    marginLeft: theme.spacing.xs,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.xl,
   },
   emptyText: {
+    fontSize: theme.typography.h3.fontSize,
+    color: theme.colors.textSecondary,
+    marginVertical: theme.spacing.lg,
     textAlign: 'center',
-    color: '#666',
-    fontSize: 16,
-    marginTop: 20,
   },
 }); 

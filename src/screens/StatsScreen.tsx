@@ -1,15 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { CompositeScreenProps } from '@react-navigation/native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import { RootStackParamList, MainTabParamList } from '../../App';
 import { getGameHistory, GameHistoryItem } from '../utils/storage';
-
-type StatsScreenProps = CompositeScreenProps<
-  BottomTabScreenProps<MainTabParamList, 'Stats'>,
-  NativeStackScreenProps<RootStackParamList>
->;
+import { Card } from '../components/Card';
+import { theme } from '../utils/theme';
+import { Ionicons } from '@expo/vector-icons';
 
 interface PlayerStats {
   name: string;
@@ -19,7 +13,7 @@ interface PlayerStats {
   winRate: string;
 }
 
-export default function StatsScreen({ navigation }: StatsScreenProps) {
+export default function StatsScreen() {
   const [playerStats, setPlayerStats] = useState<PlayerStats[]>([]);
 
   useEffect(() => {
@@ -67,30 +61,55 @@ export default function StatsScreen({ navigation }: StatsScreenProps) {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Player Statistics</Text>
+      
       {playerStats.length > 0 ? (
         playerStats.map((stats, index) => (
-          <View key={index} style={styles.statsCard}>
-            <Text style={styles.playerName}>{stats.name}</Text>
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>Matches Played:</Text>
-              <Text style={styles.statValue}>{stats.matchesPlayed}</Text>
+          <Card key={index} variant="elevated" style={styles.statsCard}>
+            <View style={styles.playerHeader}>
+              <Ionicons name="person-circle-outline" size={24} color={theme.colors.primary} />
+              <Text style={styles.playerName}>{stats.name}</Text>
             </View>
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>Matches Won:</Text>
-              <Text style={styles.statValue}>{stats.matchesWon}</Text>
+            
+            <View style={styles.statsGrid}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{stats.matchesPlayed}</Text>
+                <Text style={styles.statLabel}>Matches</Text>
+              </View>
+              
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{stats.matchesWon}</Text>
+                <Text style={styles.statLabel}>Wins</Text>
+              </View>
+              
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{stats.setsWon}</Text>
+                <Text style={styles.statLabel}>Sets</Text>
+              </View>
+              
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{stats.winRate}</Text>
+                <Text style={styles.statLabel}>Win Rate</Text>
+              </View>
             </View>
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>Sets Won:</Text>
-              <Text style={styles.statValue}>{stats.setsWon}</Text>
+            
+            <View style={styles.progressContainer}>
+              <View style={styles.progressBar}>
+                <View 
+                  style={[
+                    styles.progressFill, 
+                    { width: `${parseFloat(stats.winRate)}%` }
+                  ]} 
+                />
+              </View>
             </View>
-            <View style={styles.statsRow}>
-              <Text style={styles.statLabel}>Win Rate:</Text>
-              <Text style={styles.statValue}>{stats.winRate}</Text>
-            </View>
-          </View>
+          </Card>
         ))
       ) : (
-        <Text style={styles.emptyText}>No games played yet</Text>
+        <Card style={styles.emptyCard}>
+          <Ionicons name="stats-chart-outline" size={64} color={theme.colors.textSecondary} />
+          <Text style={styles.emptyText}>No games played yet</Text>
+          <Text style={styles.emptySubtext}>Play some games to see your statistics</Text>
+        </Card>
       )}
     </ScrollView>
   );
@@ -99,47 +118,79 @@ export default function StatsScreen({ navigation }: StatsScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.md,
   },
   title: {
-    fontSize: 24,
+    fontSize: theme.typography.h2.fontSize,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.lg,
   },
   statsCard: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    marginBottom: theme.spacing.md,
+  },
+  playerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
   },
   playerName: {
-    fontSize: 18,
+    fontSize: theme.typography.h3.fontSize,
     fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#007AFF',
+    color: theme.colors.text,
+    marginLeft: theme.spacing.sm,
   },
-  statsRow: {
+  statsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 5,
+    marginBottom: theme.spacing.md,
   },
-  statLabel: {
-    fontSize: 16,
-    color: '#666',
+  statItem: {
+    width: '48%',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
   },
   statValue: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
+    marginBottom: theme.spacing.xs,
+  },
+  statLabel: {
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.textSecondary,
+  },
+  progressContainer: {
+    marginTop: theme.spacing.sm,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: theme.colors.border,
+    borderRadius: theme.borderRadius.sm,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.sm,
+  },
+  emptyCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing.xl,
   },
   emptyText: {
+    fontSize: theme.typography.h3.fontSize,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  emptySubtext: {
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
-    color: '#666',
-    fontSize: 16,
-    marginTop: 20,
   },
 }); 

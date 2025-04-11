@@ -1,276 +1,334 @@
-import React, { useState } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Alert, ScrollView } from 'react-native';
+import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../../App';
-import { saveGameToHistory } from '../utils/storage';
+import { Button } from '../components/Button';
+import { Card } from '../components/Card';
+import { theme } from '../utils/theme';
+import { saveGameToHistory, getGameHistory, GameHistoryItem } from '../utils/storage';
+import { Ionicons } from '@expo/vector-icons';
 
-type GameScreenProps = NativeStackScreenProps<RootStackParamList, 'Game'>;
+type GameScreenRouteProp = RouteProp<RootStackParamList, 'Game'>;
 
-const GameScreen: React.FC<GameScreenProps> = ({ route, navigation }) => {
+export default function GameScreen() {
+  const route = useRoute<GameScreenRouteProp>();
+  const navigation = useNavigation();
   const { player1Name, player2Name } = route.params;
-  const [score1, setScore1] = useState(0);
-  const [score2, setScore2] = useState(0);
+
+  // Game state
+  const [points1, setPoints1] = useState(0);
+  const [points2, setPoints2] = useState(0);
   const [games1, setGames1] = useState(0);
   const [games2, setGames2] = useState(0);
   const [sets1, setSets1] = useState(0);
   const [sets2, setSets2] = useState(0);
-  const [gameHistory, setGameHistory] = useState<string[]>([]);
-  const [isMatchComplete, setIsMatchComplete] = useState(false);
+  const [isDeuce, setIsDeuce] = useState(false);
+  const [isAdvantage, setIsAdvantage] = useState(false);
+  const [advantagePlayer, setAdvantagePlayer] = useState<1 | 2 | null>(null);
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [gameHistory, setGameHistory] = useState<GameHistoryItem[]>([]);
+
+  useEffect(() => {
+    loadGameHistory();
+  }, []);
+
+  const loadGameHistory = async () => {
+    const history = await getGameHistory();
+    setGameHistory(history);
+  };
+
+  const resetPoints = () => {
+    setPoints1(0);
+    setPoints2(0);
+    setIsDeuce(false);
+    setIsAdvantage(false);
+    setAdvantagePlayer(null);
+  };
 
   const handlePoint = (player: 1 | 2) => {
-    if (isMatchComplete) return;
+    if (isGameOver) return;
 
-    if (player === 1) {
-      setScore1(prev => {
-        const newScore = prev + 1;
-        if (newScore >= 4 && newScore - score2 >= 2) {
-          handleGame(1);
-          return 0;
+    if (isDeuce) {
+      if (isAdvantage) {
+        if (advantagePlayer === player) {
+          // Win game
+          if (player === 1) {
+            setGames1(games1 + 1);
+          } else {
+            setGames2(games2 + 1);
+          }
+          resetPoints();
+          checkSetWinner();
+        } else {
+          // Back to deuce
+          setIsAdvantage(false);
+          setAdvantagePlayer(null);
         }
-        return newScore;
-      });
+      } else {
+        // Set advantage
+        setIsAdvantage(true);
+        setAdvantagePlayer(player);
+      }
     } else {
-      setScore2(prev => {
-        const newScore = prev + 1;
-        if (newScore >= 4 && newScore - score1 >= 2) {
-          handleGame(2);
-          return 0;
+      if (player === 1) {
+        if (points1 === 40 || (points1 === 30 && points2 < 40)) {
+          setGames1(games1 + 1);
+          resetPoints();
+          checkSetWinner();
+        } else {
+          setPoints1(points1 + 15);
+          if (points1 === 30 && points2 === 40) {
+            setIsDeuce(true);
+          }
         }
-        return newScore;
-      });
+      } else {
+        if (points2 === 40 || (points2 === 30 && points1 < 40)) {
+          setGames2(games2 + 1);
+          resetPoints();
+          checkSetWinner();
+        } else {
+          setPoints2(points2 + 15);
+          if (points2 === 30 && points1 === 40) {
+            setIsDeuce(true);
+          }
+        }
+      }
     }
   };
 
-  const handleGame = (winner: 1 | 2) => {
-    if (winner === 1) {
-      setGames1(prev => {
-        const newGames = prev + 1;
-        if (newGames >= 6 && newGames - games2 >= 2) {
-          handleSet(1);
-          return 0;
-        }
-        return newGames;
-      });
-    } else {
-      setGames2(prev => {
-        const newGames = prev + 1;
-        if (newGames >= 6 && newGames - games1 >= 2) {
-          handleSet(2);
-          return 0;
-        }
-        return newGames;
-      });
+  const checkSetWinner = () => {
+    if (games1 >= 6 && games1 - games2 >= 2) {
+      setSets1(sets1 + 1);
+      setGames1(0);
+      setGames2(0);
+      checkMatchWinner();
+    } else if (games2 >= 6 && games2 - games1 >= 2) {
+      setSets2(sets2 + 1);
+      setGames1(0);
+      setGames2(0);
+      checkMatchWinner();
     }
-    setScore1(0);
-    setScore2(0);
   };
 
-  const handleSet = (winner: 1 | 2) => {
-    if (winner === 1) {
-      setSets1(prev => {
-        const newSets = prev + 1;
-        if (newSets >= 2) {
-          handleMatchComplete(1);
-          return newSets;
-        }
-        return newSets;
-      });
-    } else {
-      setSets2(prev => {
-        const newSets = prev + 1;
-        if (newSets >= 2) {
-          handleMatchComplete(2);
-          return newSets;
-        }
-        return newSets;
-      });
+  const checkMatchWinner = () => {
+    if (sets1 === 2) {
+      endGame(1);
+    } else if (sets2 === 2) {
+      endGame(2);
     }
-    setGames1(0);
-    setGames2(0);
+  };
+
+  const endGame = async (winner: 1 | 2) => {
+    setIsGameOver(true);
     const currentSetNumber = sets1 + sets2 + 1;
-    setGameHistory(prev => [...prev, `Set ${currentSetNumber} won by ${winner === 1 ? player1Name : player2Name}`]);
-  };
-
-  const handleMatchComplete = async (winner: 1 | 2) => {
-    setIsMatchComplete(true);
-    const winnerName = winner === 1 ? player1Name : player2Name;
     
-    // Update the sets count for the winner
-    const finalSets1 = winner === 1 ? sets1 + 1 : sets1;
-    const finalSets2 = winner === 2 ? sets2 + 1 : sets2;
-
-    // Save game to history
-    await saveGameToHistory({
+    const newGame: GameHistoryItem = {
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
       player1: player1Name,
       player2: player2Name,
-      score: `${finalSets1}-${finalSets2}`,
       sets: {
-        player1: finalSets1,
-        player2: finalSets2,
+        player1: sets1 + (winner === 1 ? 1 : 0),
+        player2: sets2 + (winner === 2 ? 1 : 0),
       },
-    });
+      winner: winner === 1 ? player1Name : player2Name,
+      setNumber: currentSetNumber,
+    };
+
+    const updatedHistory = [...gameHistory, newGame];
+    await saveGameToHistory(newGame);
+    setGameHistory(updatedHistory);
 
     Alert.alert(
-      'Match Complete!',
-      `${winnerName} wins the match!`,
+      'Game Over',
+      `${winner === 1 ? player1Name : player2Name} wins the match!`,
       [
         {
           text: 'New Game',
-          onPress: () => navigation.navigate('MainTabs', { screen: 'NewGame' }),
+          onPress: () => navigation.navigate('NewGame' as never),
         },
         {
           text: 'View History',
-          onPress: () => navigation.navigate('MainTabs', { screen: 'History' }),
+          onPress: () => navigation.navigate('History' as never),
         },
       ]
     );
   };
 
-  const getScoreDisplay = (score: number) => {
-    switch (score) {
-      case 0: return '0';
-      case 1: return '15';
-      case 2: return '30';
-      case 3: return '40';
-      default: return 'Ad';
-    }
+  const formatPoints = (points: number) => {
+    if (points === 0) return '0';
+    if (points === 15) return '15';
+    if (points === 30) return '30';
+    if (points === 45) return '40';
+    return '0';
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>vs {player2Name}</Text>
-      </View>
-
-      <View style={styles.scoreBoard}>
-        <View style={styles.playerSection}>
-          <Text style={styles.playerName}>{player1Name}</Text>
-          <Text style={styles.score}>{getScoreDisplay(score1)}</Text>
-          <Text style={styles.games}>{games1}</Text>
-          <Text style={styles.sets}>{sets1}</Text>
+    <ScrollView style={styles.container}>
+      <Card variant="elevated" style={styles.scoreCard}>
+        <View style={styles.playerContainer}>
+          <View style={styles.playerInfo}>
+            <Text style={styles.playerName}>{player1Name}</Text>
+            <Text style={styles.setScore}>{sets1}</Text>
+          </View>
+          <View style={styles.playerInfo}>
+            <Text style={styles.playerName}>{player2Name}</Text>
+            <Text style={styles.setScore}>{sets2}</Text>
+          </View>
         </View>
-        <View style={styles.playerSection}>
-          <Text style={styles.playerName}>{player2Name}</Text>
-          <Text style={styles.score}>{getScoreDisplay(score2)}</Text>
-          <Text style={styles.games}>{games2}</Text>
-          <Text style={styles.sets}>{sets2}</Text>
-        </View>
-      </View>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[styles.button, isMatchComplete && styles.buttonDisabled]}
-          onPress={() => handlePoint(1)}
-          disabled={isMatchComplete}
-        >
-          <Text style={styles.buttonText}>Point for {player1Name}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, isMatchComplete && styles.buttonDisabled]}
-          onPress={() => handlePoint(2)}
-          disabled={isMatchComplete}
-        >
-          <Text style={styles.buttonText}>Point for {player2Name}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {gameHistory.length > 0 && (
-        <View style={styles.historyContainer}>
-          <Text style={styles.historyTitle}>Set History</Text>
-          {gameHistory.map((entry, index) => (
-            <Text key={index} style={styles.historyEntry}>{entry}</Text>
-          ))}
+        <View style={styles.gameScoreContainer}>
+          <Text style={styles.gameScore}>{games1}</Text>
+          <Text style={styles.gameScoreLabel}>Games</Text>
+          <Text style={styles.gameScore}>{games2}</Text>
         </View>
-      )}
-    </View>
+
+        <View style={styles.pointsContainer}>
+          <View style={styles.pointSection}>
+            <Text style={styles.pointLabel}>Points</Text>
+            <Text style={styles.pointValue}>
+              {isDeuce
+                ? isAdvantage
+                  ? advantagePlayer === 1
+                    ? 'Ad'
+                    : '40'
+                  : 'Deuce'
+                : formatPoints(points1)}
+            </Text>
+            <Button
+              title="Point"
+              onPress={() => handlePoint(1)}
+              variant="primary"
+              icon="add-circle-outline"
+              disabled={isGameOver}
+              fullWidth
+            />
+          </View>
+
+          <View style={styles.pointSection}>
+            <Text style={styles.pointLabel}>Points</Text>
+            <Text style={styles.pointValue}>
+              {isDeuce
+                ? isAdvantage
+                  ? advantagePlayer === 2
+                    ? 'Ad'
+                    : '40'
+                  : 'Deuce'
+                : formatPoints(points2)}
+            </Text>
+            <Button
+              title="Point"
+              onPress={() => handlePoint(2)}
+              variant="secondary"
+              icon="add-circle-outline"
+              disabled={isGameOver}
+              fullWidth
+            />
+          </View>
+        </View>
+      </Card>
+
+      <Card style={styles.controlsCard}>
+        <Text style={styles.controlsTitle}>Game Controls</Text>
+        <View style={styles.controlsRow}>
+          <Button
+            title="Reset Points"
+            onPress={resetPoints}
+            variant="outline"
+            icon="refresh-outline"
+            size="small"
+          />
+          <Button
+            title="New Game"
+            onPress={() => navigation.navigate('NewGame' as never)}
+            variant="outline"
+            icon="add-outline"
+            size="small"
+          />
+        </View>
+      </Card>
+    </ScrollView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.md,
   },
-  header: {
-    padding: 20,
-    backgroundColor: '#007AFF',
+  scoreCard: {
+    marginBottom: theme.spacing.lg,
   },
-  headerText: {
-    color: 'white',
-    fontSize: 18,
-    textAlign: 'center',
-  },
-  scoreBoard: {
+  playerContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 40,
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing.md,
   },
-  playerSection: {
+  playerInfo: {
     alignItems: 'center',
   },
   playerName: {
-    fontSize: 24,
+    fontSize: theme.typography.h3.fontSize,
     fontWeight: 'bold',
-    marginBottom: 10,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
   },
-  score: {
-    fontSize: 48,
+  setScore: {
+    fontSize: theme.typography.h1.fontSize,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: theme.colors.primary,
   },
-  games: {
-    fontSize: 20,
-    marginTop: 10,
+  gameScoreContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: theme.colors.border,
   },
-  sets: {
-    fontSize: 16,
-    color: 'gray',
-    marginTop: 5,
+  gameScore: {
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: 'bold',
+    color: theme.colors.text,
   },
-  buttonContainer: {
+  gameScoreLabel: {
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.textSecondary,
+  },
+  pointsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  pointSection: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: theme.spacing.sm,
+  },
+  pointLabel: {
+    fontSize: theme.typography.body.fontSize,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.xs,
+  },
+  pointValue: {
+    fontSize: theme.typography.h2.fontSize,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.md,
+  },
+  controlsCard: {
+    marginBottom: theme.spacing.lg,
+  },
+  controlsTitle: {
+    fontSize: theme.typography.h3.fontSize,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.md,
+  },
+  controlsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
   },
-  button: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 10,
-    minWidth: 150,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  historyContainer: {
-    marginTop: 40,
-    padding: 15,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-  },
-  historyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
-  },
-  historyEntry: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 5,
-  },
-});
-
-export default GameScreen; 
+}); 
