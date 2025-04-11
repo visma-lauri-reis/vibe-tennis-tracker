@@ -1,28 +1,45 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { RootStackParamList, MainTabParamList } from '../../App';
+import { GameHistoryItem, getGameHistory } from '../utils/storage';
 
 type HistoryScreenProps = CompositeScreenProps<
   BottomTabScreenProps<MainTabParamList, 'History'>,
   NativeStackScreenProps<RootStackParamList>
 >;
 
-// Temporary mock data
-const mockHistory = [
-  { id: '1', player1: 'John', player2: 'Alice', date: '2024-03-20', score: '6-4, 7-5' },
-  { id: '2', player1: 'Bob', player2: 'Charlie', date: '2024-03-19', score: '6-2, 6-3' },
-  { id: '3', player1: 'David', player2: 'Eve', date: '2024-03-18', score: '6-7, 6-4, 6-3' },
-];
-
 export default function HistoryScreen({ navigation }: HistoryScreenProps) {
-  const renderItem = ({ item }: { item: typeof mockHistory[0] }) => (
+  const [history, setHistory] = useState<GameHistoryItem[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadHistory = async () => {
+    const gameHistory = await getGameHistory();
+    setHistory(gameHistory);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadHistory();
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  };
+
+  const renderItem = ({ item }: { item: GameHistoryItem }) => (
     <View style={styles.historyItem}>
-      <Text style={styles.date}>{item.date}</Text>
+      <Text style={styles.date}>{formatDate(item.date)}</Text>
       <Text style={styles.players}>{item.player1} vs {item.player2}</Text>
-      <Text style={styles.score}>{item.score}</Text>
+      <Text style={styles.score}>Score: {item.score}</Text>
     </View>
   );
 
@@ -30,10 +47,16 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     <View style={styles.container}>
       <Text style={styles.title}>Game History</Text>
       <FlatList
-        data={mockHistory}
+        data={history}
         renderItem={renderItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No games played yet</Text>
+        }
       />
     </View>
   );
@@ -75,5 +98,11 @@ const styles = StyleSheet.create({
   score: {
     fontSize: 16,
     color: '#007AFF',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#666',
+    fontSize: 16,
+    marginTop: 20,
   },
 }); 

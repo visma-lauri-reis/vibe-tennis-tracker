@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
+import { saveGameToHistory } from '../utils/storage';
 
 type GameScreenProps = NativeStackScreenProps<RootStackParamList, 'Game'>;
 
@@ -96,9 +97,21 @@ const GameScreen: React.FC<GameScreenProps> = ({ route, navigation }) => {
     setGameHistory(prev => [...prev, `Set ${winner === 1 ? sets1 + 1 : sets2 + 1} won by ${winner === 1 ? player1Name : player2Name}`]);
   };
 
-  const handleMatchComplete = (winner: 1 | 2) => {
+  const handleMatchComplete = async (winner: 1 | 2) => {
     setIsMatchComplete(true);
     const winnerName = winner === 1 ? player1Name : player2Name;
+
+    // Save game to history
+    await saveGameToHistory({
+      player1: player1Name,
+      player2: player2Name,
+      score: `${sets1}-${sets2}`,
+      sets: {
+        player1: sets1,
+        player2: sets2,
+      },
+    });
+
     Alert.alert(
       'Match Complete!',
       `${winnerName} wins the match!`,
