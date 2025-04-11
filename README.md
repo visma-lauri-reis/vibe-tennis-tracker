@@ -21,7 +21,7 @@ A mobile application for tracking tennis matches, keeping score, and maintaining
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/tennis-score-tracker.git
+git clone https://github.com/visma-lauri-reis/tennis-score-tracker.git
 cd tennis-score-tracker
 ```
 
