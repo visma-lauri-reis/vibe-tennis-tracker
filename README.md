@@ -87,6 +87,19 @@ The test suite includes:
 - Point, game, and set winning conditions
 - Deuce and advantage scenarios
 
+#### Continuous Integration
+
+Tests are automatically run on GitHub Actions for:
+- Every push to the master branch
+- Every pull request targeting the master branch
+
+The CI pipeline:
+- Uses Node.js 22
+- Installs dependencies with `npm ci`
+- Runs the test suite with `npm test`
+
+You can view the test results in the GitHub Actions tab of the repository.
+
 ## Usage
 
 1. **Login**: Create an account or sign in to access your profile
