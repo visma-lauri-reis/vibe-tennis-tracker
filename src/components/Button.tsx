@@ -122,12 +122,16 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: theme.borderRadius.md,
+    borderRadius: 12,
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    ...theme.shadows.small,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   primaryButton: {
     backgroundColor: theme.colors.primary,
@@ -136,9 +140,14 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.secondary,
   },
   outlineButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
+    backgroundColor: 'white',
+    borderWidth: 1.5,
     borderColor: theme.colors.primary,
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 1,
   },
   textButton: {
     backgroundColor: 'transparent',
@@ -149,19 +158,22 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   smallButton: {
-    paddingVertical: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
   },
   largeButton: {
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
+    borderRadius: 16,
   },
   fullWidth: {
     width: '100%',
   },
   disabledButton: {
     backgroundColor: theme.colors.border,
-    borderColor: theme.colors.border,
+    borderColor: 'transparent',
+    opacity: 0.6,
   },
   contentContainer: {
     flexDirection: 'row',
@@ -172,22 +184,25 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 16,
+    letterSpacing: 0.5,
   },
   outlineText: {
     color: theme.colors.primary,
   },
   smallText: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: theme.colors.primary,
     fontWeight: '600',
+    letterSpacing: 0.25,
   },
   largeText: {
     fontSize: 18,
     color: '#FFFFFF',
     fontWeight: '600',
+    letterSpacing: 0.75,
   },
   disabledText: {
-    color: theme.colors.textSecondary,
+    color: 'rgba(0, 0, 0, 0.38)',
   },
   leftIcon: {
     marginRight: theme.spacing.xs,
