@@ -8,7 +8,6 @@ A mobile application for tracking tennis matches, keeping score, and maintaining
 - **Player Management**: Create and manage player profiles
 - **Match History**: View past matches and their outcomes
 - **Statistics**: Track player performance with detailed statistics
-- **User Authentication**: Secure login system for personal data
 
 ## Getting Started
 
@@ -102,14 +101,13 @@ You can view the test results in the GitHub Actions tab of the repository.
 
 ## Usage
 
-1. **Login**: Create an account or sign in to access your profile
-2. **New Game**: Start a new match by selecting two players
-3. **Score Tracking**: 
+1. **New Game**: Start a new match by selecting two players
+2. **Score Tracking**: 
    - Track points (0, 15, 30, 40, Ad)
    - Track games (first to 6 with 2-game lead)
    - Track sets (best of 3)
-4. **History**: View past matches and their outcomes
-5. **Statistics**: See player performance metrics including:
+3. **History**: View past matches and their outcomes
+4. **Statistics**: See player performance metrics including:
    - Matches played
    - Matches won
    - Sets won
