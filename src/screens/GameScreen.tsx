@@ -94,7 +94,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ route, navigation }) => {
     }
     setGames1(0);
     setGames2(0);
-    setGameHistory(prev => [...prev, `Set ${winner === 1 ? sets1 + 1 : sets2 + 1} won by ${winner === 1 ? player1Name : player2Name}`]);
+    const currentSetNumber = sets1 + sets2 + 1;
+    setGameHistory(prev => [...prev, `Set ${currentSetNumber} won by ${winner === 1 ? player1Name : player2Name}`]);
   };
 
   const handleMatchComplete = async (winner: 1 | 2) => {
